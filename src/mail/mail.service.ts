@@ -1,41 +1,25 @@
 import { Injectable } from '@nestjs/common';
-import * as nodemailer from 'nodemailer';
-import {ConfigService} from '@nestjs/config';
-import { sendMailDto } from '../dto/mail.dto';
-import { SubjectTopologicalSorter } from 'typeorm/persistence/SubjectTopologicalSorter.js';
-import { Subject } from 'rxjs';
+import {MailerService} from '@nestjs-modules/mailer';
+import Mail from 'nodemailer/lib/mailer';
+
 
 @Injectable()
 export class MailService {
-    constructor(private readonly configService : ConfigService){}
-    mailTransport(){
-        const transporter =nodemailer.createTransport({host:this.configService.get<string>('EMAIL_HOST'),
-            port:this.configService.get<number>('PORT'),
-            secure:false,
-            auth:{
-                user:this.configService.get<string>('EMAIL_USER'),  
-                pass:this.configService.get<string>('EMAIL_PASSWORD'),
-            },
+    constructor(private readonly mailerService:MailerService){}
+    
+    async sendApplicationConfirmation(studentEmail:string,studentName:string,jobTitle:string){
+        await this.mailerService.sendMail({
+            to:studentEmail,
+            subject:`Application Received:${jobTitle}`,
+            html:`<p>Hello ${studentName},</p><p>Your application for <strong>${jobTitle}</strong> has been successfuiily received!</p>`,
         })
-        return transporter;
-    }
-    async sendMail(dto:sendMailDto){
-        const {recipients,subject,html}=dto;
-        const transport=this.mailTransport();
-        const options : nodemailer.SendMailOptions={
-            from:this.configService.get<string>('EMAIL_USER'),
-            to:recipients,
-            subject:subject,
-            html:html,
-        };
+     }
+     async sendStatusUpdatedNotification(studentEmail:string, studentName:string,jobTitle:string,status:string){
+        await this.mailerService.sendMail({
+            to:studentEmail,
+            subject:`Application Status update:${jobTitle}`,
+            html:`<p>Hello ${studentName},</p><p>The status of your application for <strong>${jobTitle}</strong> has been updated to:<strong>${status}</strong>.</p>`,
+        });
+    } 
+ }
 
-        try{
-            await transport.sendMail(options);
-            console.log('Email sent successfully');
-        }
-        catch(error){
-            console.log('Error sending mail:',error);
-        }
-    }
-
-} 
